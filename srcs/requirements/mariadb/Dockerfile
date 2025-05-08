@@ -25,4 +25,4 @@ RUN chmod +x /usr/local/bin/setup.sh
 # 5) metadata
 EXPOSE 3306
 VOLUME ["/var/lib/mysql"]
-ENTRYPOINT ["sh", "/usr/local/bin/setup.sh"]
+ENTRYPOINT ["/usr/local/bin/setup.sh"]

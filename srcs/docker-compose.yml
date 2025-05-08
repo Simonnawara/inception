@@ -1,7 +1,27 @@
+version: "3.8"
+
+networks:
+  inception:
+    driver: bridge            # 42 subject: only the default bridge is allowed
+
+volumes:
+  mariadb_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/${USER}/data/mariadb      # host path
+  wordpress_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/${USER}/data/wordpress
+
 services:
   mariadb:
     container_name: mariadb
-    build: 
+    build:
       context: requirements/mariadb
       dockerfile: Dockerfile
     env_file: .env
@@ -9,21 +29,23 @@ services:
       - mariadb_data:/var/lib/mysql
     expose:
       - "3306"
-    networks: [inception]
+    networks:
+      - inception
     restart: unless-stopped
 
   wordpress:
     container_name: wordpress
-    build: 
+    build:
       context: requirements/wordpress
       dockerfile: Dockerfile
     env_file: .env
-    depends_on: [mariadb]
+    depends_on:
+      - mariadb
     volumes:
       - wordpress_data:/var/www/html
     expose:
       - "9000"
-    environment:               # ⇦ NEW: everything auto_config.sh needs
+    environment:               # auto_config.sh expects these
       MYSQL_HOST: mariadb
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
@@ -34,38 +56,22 @@ services:
       WP_ADMIN_PASSWORD: ${WP_ADMIN_PASSWORD}
       WP_ADMIN_MAIL: ${WP_ADMIN_MAIL}
       DOMAIN_NAME: ${DOMAIN_NAME}
-    networks: [inception]
+    networks:
+      - inception
     restart: unless-stopped
 
   nginx:
     container_name: nginx
-    build: 
+    build:
       context: requirements/nginx
       dockerfile: Dockerfile
     env_file: .env
-    depends_on: [wordpress]     # start after PHP-FPM is ready
+    depends_on:
+      - wordpress
     volumes:
       - wordpress_data:/var/www/html
     ports:
       - "443:443"
-    networks: [inception]
+    networks:
+      - inception
     restart: unless-stopped
-
-volumes:
-  mariadb_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: "/home/${USER}/data/mariadb"
-
-  wordpress_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: "/home/${USER}/data/wordpress"
-
-networks:
-  inception:
-    driver: bridge

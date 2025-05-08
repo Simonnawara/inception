@@ -40,4 +40,4 @@ RUN sed -i 's/\r$//'  /usr/local/bin/auto_config.sh \
  && chmod +x /usr/local/bin/auto_config.sh
 
 EXPOSE 9000
-ENTRYPOINT ["sh", "/usr/local/bin/auto_config.sh"]
+ENTRYPOINT ["/usr/local/bin/auto_config.sh"]
