@@ -20,21 +20,26 @@ volumes:
 
 services:
   mariadb:
-    container_name: mariadb
     build:
       context: requirements/mariadb
       dockerfile: Dockerfile
     env_file: .env
     volumes:
-      - mariadb_data:/var/lib/mysql
+      - type: bind
+        source: /home/${USER}/data/mariadb
+        target: /var/lib/mysql
+      - ./requirements/mariadb/conf/init.sql:/docker-entrypoint-initdb.d/99-init.sql:ro
     expose:
       - "3306"
     networks:
       - inception
     restart: unless-stopped
+    healthcheck:                              # let WordPress wait until DB is ready
+      test: ["CMD-SHELL", "mysqladmin --protocol=socket ping -u root --silent"]
+      interval: 5s
+      retries: 5
 
   wordpress:
-    container_name: wordpress
     build:
       context: requirements/wordpress
       dockerfile: Dockerfile
@@ -61,7 +66,6 @@ services:
     restart: unless-stopped
 
   nginx:
-    container_name: nginx
     build:
       context: requirements/nginx
       dockerfile: Dockerfile
@@ -73,5 +77,7 @@ services:
     ports:
       - "443:443"
     networks:
-      - inception
+      inception:
+        aliases:
+          - wordpress
     restart: unless-stopped

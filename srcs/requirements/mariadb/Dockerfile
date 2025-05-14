@@ -1,28 +1,26 @@
-# ────────────────────────────────────────────────────────────
-# MariaDB image for 42-Inception
-# ────────────────────────────────────────────────────────────
+# ── build only from Debian, no hub images ─────────────────────────
 FROM debian:bullseye-slim
 
-ENV DEBIAN_FRONTEND=noninteractive
-
-# 1) install server
+# 1-a  install server
 RUN apt-get update \
- && apt-get install -y --no-install-recommends mariadb-server \
- && rm -rf /var/lib/apt/lists/* \
- \
- # 2) wipe the pre-seeded datadir that the Debian package creates
- && rm -rf /var/lib/mysql/* \
- \
- # 3) make sure the runtime socket dir exists & is writable
- && mkdir -p /run/mysqld \
- && chown mysql:mysql /run/mysqld
+ && apt-get install -y --no-install-recommends mariadb-server pwgen \
+ && rm -rf /var/lib/apt/lists/*
 
-# 4) custom conf + bootstrap script
+# 1-b  make *mysql* always UID 999 / GID 999 (matches we’ll give the host dir)
+RUN groupmod -g 999 mysql \
+ &&  usermod  -u 999 mysql
+
+# 1-c  open the TCP listener to the bridge network
 COPY conf/50-server.cnf /etc/mysql/mariadb.conf.d/50-server.cnf
-COPY tools/setup.sh     /usr/local/bin/setup.sh
+
+# 1-d  first-boot SQL: creates DB, user, grants
+COPY conf/init.sql /docker-entrypoint-initdb.d/99-init.sql:ro
+
+
+# 1-e  tiny entry-point that prints “ready” to stdout
+COPY tools/setup.sh  /usr/local/bin/setup.sh
 RUN chmod +x /usr/local/bin/setup.sh
 
-# 5) metadata
 EXPOSE 3306
-VOLUME ["/var/lib/mysql"]
 ENTRYPOINT ["/usr/local/bin/setup.sh"]
+CMD ["mysqld_safe"]

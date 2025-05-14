@@ -39,5 +39,7 @@ RUN sed -i 's/\r$//'  /usr/local/bin/auto_config.sh \
  && sed -i '1s/^\xEF\xBB\xBF//' /usr/local/bin/auto_config.sh \
  && chmod +x /usr/local/bin/auto_config.sh
 
+CMD ["auto_config.sh"]
+
 EXPOSE 9000
 ENTRYPOINT ["/usr/local/bin/auto_config.sh"]

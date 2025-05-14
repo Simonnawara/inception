@@ -1,27 +1,28 @@
-NAME = inception
-
-.PHONY: all up down build clean fclean re
-
 all: up
 
-up:
-	@echo "🔼  Starting containers..."
-	@cd srcs && docker compose up -d --build
+up: create_dirs
+	@docker compose -f ./srcs/docker-compose.yml up --build -d
+
+create_dirs:
+	@sudo rm -rf   /home/$(USER)/data/mariadb
+	@sudo mkdir -p /home/$(USER)/data/mariadb
+	@sudo chown -R 999:999 /home/$(USER)/data/mariadb
+	@sudo install -d -o $(USER) -g $(USER) -m 0755 /home/$(USER)/data/wordpress
+	@echo "Created data directories with correct ownership"
 
 down:
-	@echo "🧯  Stopping containers..."
-	@cd srcs && docker compose down
+	@docker compose -f ./srcs/docker-compose.yml down -v --remove-orphans
+	@sudo rm -rf /home/$(USER)/data/
 
-build:
-	@echo "🔨  Building containers..."
-	@cd srcs && docker compose build
-
-clean:
-	@echo "🧼  Removing containers and volumes..."
-	@cd srcs && docker compose down -v
+clean: down
+	@docker system prune -a --force
 
 fclean: clean
-	@echo "🗑️  Removing Docker images..."
-	@docker rmi -f $$(docker images -q srcs_nginx srcs_wordpress srcs_mariadb 2>/dev/null) || true
+	@sudo rm -rf /home/$(USER)/data
+	@docker volume prune --force
+	@docker network prune --force
+	@echo "Removed all data directories and Docker artifacts"
 
 re: fclean all
+
+.PHONY: all up down clean fclean re create_dirs
